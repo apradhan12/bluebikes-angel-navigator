@@ -14,45 +14,32 @@ CITY_RADIUS_KM = 50
 
 def process_file_contents(timestamp, contents):
     stations = contents["features"]
-    processed = []
+    processed = {}
     # print(datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'))
     for station in stations:
         coords = station["geometry"]["coordinates"]
         coords.reverse()
+        station_id = station["properties"]["station"]["id"]
+
         is_active = all(station["properties"]["station"][property_name]
                         for property_name in ["installed", "renting", "returning"])
-        station_id = station["properties"]["station"]["id"]
         name = station["properties"]["station"]["name"]
-        if is_active:
-            try:
-                bike_angels_action = station["properties"]["bike_angels_action"]
-            except KeyError:
-                print(station_id, timestamp)
-                continue
-            bike_angels_points = station["properties"]["bike_angels"]["score"]
-            bikes = station["properties"]["station"]["bikes_available"]
-            docks = station["properties"]["station"]["docks_available"]
-            # print(f"Bike station {name} at {coords[0]}, {coords[1]} with id "
-            #       f"{station_id} has bike angel points {bike_angels_points}")
-            processed.append({
-                "coords": coords,
-                "is_active": is_active,
-                "id": station_id,
-                "bike_angels_action": bike_angels_action,
-                "bike_angels_points": bike_angels_points
-            })
-        else:
-            # print(f"Bike station {name} at {coords[0]}, {coords[1]} with id {station_id} is currently inactive")
-            processed.append({
-                "coords": coords,
-                "is_active": is_active,
-                "id": station_id
-            })
+        bikes = station["properties"]["station"]["bikes_available"]
+        docks = station["properties"]["station"]["docks_available"]
+        capacity = station["properties"]["station"]["capacity"]
+        processed_entry = {
+            "is_active": is_active,
+            "bikes": bikes,
+            "docks": docks,
+            "capacity": capacity
+        }
+        if "bike_angels" in station["properties"]:
+            processed_entry["score"] = station["properties"]["bike_angels"]["score"]
+        processed[station_id] = processed_entry
 
         station_entry = {
             "name": name,
             "coords": coords,
-            "is_active": is_active,
             "timestamp_added": timestamp
         }
 
@@ -80,6 +67,8 @@ def process_file_contents(timestamp, contents):
                         print(f"Station {station_id} at timestamp {timestamp}, field {field_name} doesn't "
                               f"match earlier value at timestamp {overall_stations[station_id]['timestamp_added']}: "
                               f"{station_entry[field_name]} != {overall_stations[station_id][field_name]}")
+    with open(f"processed_output/{timestamp}.txt", "w") as file_stream:
+        json.dump(processed, file_stream)
 
 
 def main():
@@ -89,7 +78,9 @@ def main():
         with open(f"raw_output/{filename}") as file_stream:
             contents = json.load(file_stream)
             timestamp = int(filename.split(".")[0])
-            process_file_contents(timestamp, contents)
+        process_file_contents(timestamp, contents)
+    with open("overall_stations.txt", "w") as file_stream:
+        json.dump(overall_stations, file_stream)
 
 
 if __name__ == "__main__":
