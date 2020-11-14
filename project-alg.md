@@ -1,4 +1,4 @@
-# PROJECT
+# Project
 
 we have: 3208 datapoints for each station
 
@@ -24,3 +24,25 @@ first, we'll only consider previous datapoints for the same station, as well as 
 - problem: might not be affine linear - logistic curve makes more sense for correspondence from bike/docks ratio to angel points
 
 - we need to use neural networks
+
+## Data collected 2020-11-13
+
+Visited a total of 3 bike stations
+
+1. Ruggles - 0 bikes, 17 docks, 18 capacity (according to app)
+    - there was 1 bike (whose dock had a *blinking* light) and 17 empty docks
+    - the 1 bike in the station was not showing up on the app
+    - when I requested to take out a bike, it got stuck on loading for several seconds
+    - I could not remove the bike
+2. Avenue Louis Pasteur at Longwood Ave - 22 bikes, 1 dock, 25 capacity (according to app)
+    - one of the occupied docks had a *blinking* red light
+    - there were 24 total bikes and 1 empty dock
+    - although the system registered `capacity - (bikes + dock) = 2`, I only observed an issue with one of the bikes/docks
+    - I was able to take out a bike, but not the one with the blinking light
+    - moving a bike to the empty dock did not affect the problem
+3. Comm Ave at Agganis Way - 8 bikes, 6 docks, 15 capacity (according to app)
+    - one of the occupied docks had a *solid* red light
+    - there were 9 total bikes and 6 empty docks
+    - I could not take out the bike whose dock had a solid light
+    - I could not press the "request repairs" button until I took out a bike and returned it
+    - this immediately marked the dock as solid red, and sent me an email with a Google Form link asking about the problem with the bike
