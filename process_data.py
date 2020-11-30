@@ -1,15 +1,9 @@
 import json
 import os
-import re
 from datetime import datetime
-from geopy.distance import distance
 
 
 overall_stations = {}
-
-EPSILON_METERS = 120
-BOSTON_COORDS = [42.358056, -71.063611]
-CITY_RADIUS_KM = 50
 
 
 def process_file_contents(timestamp, contents):
@@ -38,8 +32,8 @@ def process_file_contents(timestamp, contents):
         processed[station_id] = processed_entry
 
         station_entry = {
-            "name": name,
-            "coords": coords,
+            "name": [[timestamp, name]],
+            "coords": [[timestamp, coords]],
             "timestamp_added": timestamp
         }
 
@@ -48,25 +42,10 @@ def process_file_contents(timestamp, contents):
             overall_stations[station_id] = station_entry
         else:
             for field_name in ["name", "coords"]:
-                if overall_stations[station_id][field_name] != station_entry[field_name]:
-                    if field_name == "coords" and distance(coords, BOSTON_COORDS).km < CITY_RADIUS_KM < \
-                            distance(overall_stations[station_id]["coords"], BOSTON_COORDS).km:
-                        print(f"Station {name} ({station_id}) has changed its coordinates from "
-                              f"{overall_stations[station_id]['coords']} to {station_entry['coords']}")
-                        overall_stations[station_id]["coords"] = station_entry["coords"]
-                    elif field_name == "coords" and distance(overall_stations[station_id]["coords"], station_entry["coords"]).m < EPSILON_METERS:
-                        print(f"Station {name} ({station_id}) has changed its coordinates from "
-                              f"{overall_stations[station_id]['coords']} to {station_entry['coords']} "
-                              f"(distance: {distance(overall_stations[station_id]['coords'], station_entry['coords']).m} m)")
-                        overall_stations[station_id]["coords"] = station_entry["coords"]
-                    elif field_name == "name" and re.match("^N[0-9]+$", overall_stations[station_id]["name"]):
-                        print(f"Station {name} ({station_id}) has changed its name from "
-                              f"{overall_stations[station_id]['name']} to {name}")
-                        overall_stations[station_id]["name"] = name
-                    else:
-                        print(f"Station {station_id} at timestamp {timestamp}, field {field_name} doesn't "
-                              f"match earlier value at timestamp {overall_stations[station_id]['timestamp_added']}: "
-                              f"{station_entry[field_name]} != {overall_stations[station_id][field_name]}")
+                if overall_stations[station_id][field_name][-1][1] != station_entry[field_name][0][1]:
+                    print(f"Station {name} ({station_id}) has changed its {field_name} from "
+                          f"{overall_stations[station_id][field_name][-1][1]} to {station_entry[field_name][0][1]}")
+                    overall_stations[station_id][field_name].append([timestamp, station_entry[field_name][0][1]])
     with open(f"processed_output/{timestamp}.txt", "w") as file_stream:
         json.dump(processed, file_stream)
 
