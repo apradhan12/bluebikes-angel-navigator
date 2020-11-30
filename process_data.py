@@ -7,6 +7,9 @@ overall_stations = {}
 
 
 def process_file_contents(timestamp, contents):
+    if "message" in contents and contents["message"] == "Internal server error":
+        print(f"Internal server error at time {timestamp}")
+        return
     stations = contents["features"]
     processed = {}
     # print(datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'))
@@ -21,14 +24,9 @@ def process_file_contents(timestamp, contents):
         bikes = station["properties"]["station"]["bikes_available"]
         docks = station["properties"]["station"]["docks_available"]
         capacity = station["properties"]["station"]["capacity"]
-        processed_entry = {
-            "is_active": is_active,
-            "bikes": bikes,
-            "docks": docks,
-            "capacity": capacity
-        }
+        processed_entry = [is_active, bikes, docks, capacity]
         if "bike_angels" in station["properties"]:
-            processed_entry["score"] = station["properties"]["bike_angels"]["score"]
+            processed_entry.append(station["properties"]["bike_angels"]["score"])
         processed[station_id] = processed_entry
 
         station_entry = {
