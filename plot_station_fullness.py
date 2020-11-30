@@ -57,9 +57,12 @@ def main():
 
     while start_date <= end_date:
         if start_date.weekday() == 0:
-            plt.axvline(x=start_date, c=(0.5, 0.5, 0.5))
-        else:
             plt.axvline(x=start_date, c=(0.2, 0.2, 0.2))
+        elif start_date.weekday() == 5:
+            plt.axvline(x=start_date, c=(0.5, 0.5, 0.5))
+            plt.axvspan(start_date, start_date + timedelta(days=2), alpha=0.5, color=(0, 1, 1))
+        else:
+            plt.axvline(x=start_date, c=(0.5, 0.5, 0.5))
         start_date += timedelta(days=1)
 
     plt.legend(["# Bikes", "# Bikes + Docks", "Capacity", "Angel Points"])
