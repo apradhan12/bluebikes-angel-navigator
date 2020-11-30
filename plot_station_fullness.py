@@ -1,20 +1,26 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
+import numpy as np
+import sys
 
-ID = "5"
+station_id = None
 
 
 def process_file_contents(timestamp, contents):
-    if ID in contents:
-        return contents[ID]
+    if station_id in contents:
+        return contents[station_id]
     else:
-        raise Exception(f"{ID} is not present at timestamp {timestamp}")
+        raise Exception(f"{station_id} is not present at timestamp {timestamp}")
 
 
 def main():
+    global station_id
+
     timestamps = []
     valid = []
     bikes = []
@@ -23,6 +29,8 @@ def main():
     points = []
 
     i = 0
+
+    station_id = sys.argv[1]
 
     start_date = None
     end_time = None
@@ -44,8 +52,15 @@ def main():
         bikes.append(id_contents[1])
         bikes_and_docks.append(id_contents[1] + id_contents[2])
         capacities.append(id_contents[3])
-        points.append(id_contents[4])
+        if len(id_contents) == 5:
+            points.append(id_contents[4])
+        else:
+            points.append(None)
         i += 1
+
+    with open("overall_stations.txt") as file_stream:
+        contents = json.load(file_stream)
+    name = contents[station_id]["name"][-1][1]
 
     end_date = datetime.combine(end_time.date(), datetime.min.time())
 
@@ -66,10 +81,11 @@ def main():
         start_date += timedelta(days=1)
 
     plt.legend(["# Bikes", "# Bikes + Docks", "Capacity", "Angel Points"])
-    plt.title(f"Bike capacity at Northeastern University (station ID {ID})")
+    plt.title(f"Bike capacity at {name} (station ID {station_id})")
 
     plt.xlabel("Date/Time")
-    plt.axis(ymin=-3)
+    xmin, xmax, ymin, ymax = plt.axis(ymin=-3)
+    plt.yticks(np.arange(ymin, ymax + 1, step=1))
 
     plt.show()
 
