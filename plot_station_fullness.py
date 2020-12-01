@@ -9,7 +9,8 @@ import numpy as np
 import sys
 
 station_id = None
-OVERLAY_SINGLE_DAY = False
+OVERLAY_SINGLE_DAY = True
+INCLUDE_LEGEND = False
 
 
 def process_file_contents(timestamp, contents):
@@ -29,9 +30,10 @@ def initialize_current_date_data(arrays):
 
 def split_dates_and_modulo_time(timestamps, arrays,
                                 date_lambda=lambda dt: dt.date(),
-                                time_lambda=lambda dt: dt.time()):
+                                time_lambda=lambda dt: dt.time().hour + dt.time().minute / 60):
     """
     :param time_lambda: lambda to get time of day from datetime object
+                        (result needs to eventually be parsed to float for matplotlib, if not float already)
     :param date_lambda: lambda to convert datetime object to date
     :param timestamps: an array of the timestamps for all the data points (sorted ascending)
     :param arrays: an array of arrays of values for each of the other variables
@@ -123,24 +125,30 @@ def main():
 
     # TODO: deal with inactive stations
     if OVERLAY_SINGLE_DAY:
-        for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, [bikes])):
-            if i % 7 == 2:
+        for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, [points])):
+            if i % 7 in [0, 1, 2, 3, 6]:
                 for variable_array in date_array[1:]:
                     # the date you put in here doesn't matter - just a filler
                     # TODO: graph by hour of day instead??? or maybe just change x-axis labels
-                    plt.plot([datetime.combine(start_date, t) for t in date_array[0]], variable_array, label=i)
+                    # [x % 2 if x is not None else None for x in variable_array]
+                    plt.plot(date_array[0], [x % 2 if x is not None else None for x in variable_array], label=i)
+        plt.axis(ymin=-3, ymax=3)
+        # replace "on weekdays" appropriately
+        plt.title(f"Angel point values on weekdays at {name} (station ID {station_id})")
     else:
+        plt.axis(ymin=-3)
+        plt.title(f"Bike capacity at {name} (station ID {station_id})")
         plt.plot(timestamps, bikes, label="# Bikes")
         plt.plot(timestamps, bikes_and_docks, label="# Bikes + Docks")
         plt.plot(timestamps, capacities, label="Capacity")
         plt.plot(timestamps, points, label="Angel Points")
         add_weekday_lines(start_date, end_date)
 
-    plt.legend()
-    plt.title(f"Bike capacity at {name} (station ID {station_id})")
+    if INCLUDE_LEGEND:
+        plt.legend()
 
     plt.xlabel("Date/Time")
-    xmin, xmax, ymin, ymax = plt.axis(ymin=-3)
+    xmin, xmax, ymin, ymax = plt.axis()
     plt.yticks(np.arange(ymin, ymax + 1, step=1))
 
     plt.show()
