@@ -46,3 +46,19 @@ Visited a total of 3 bike stations
     - I could not take out the bike whose dock had a solid light
     - I could not press the "request repairs" button until I took out a bike and returned it
     - this immediately marked the dock as solid red, and sent me an email with a Google Form link asking about the problem with the bike
+
+interesting features/questions:
+- period/amplitude of oscillation (if any)
+- movements "against the trend" (e.g. taking out a bike when most people are adding bikes)
+- what are the busiest times of day for each station?
+- is there any statistical difference between weekdays/weekends for a given station?
+- is the derivative any easier to predict than the function itself?
+- what are the most and least predictable times of day/days of the week?
+
+additional features:
+- highlight areas where angel points are nonzero / # bikes is below/above a certain threshold
+- moving average
+- split data into days, plot days on top of each other
+
+noticings:
+- Northeastern typically dips weekend afternoons whereas MIT typically goes up
