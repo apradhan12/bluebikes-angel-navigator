@@ -12,6 +12,11 @@ station_id = None
 OVERLAY_SINGLE_DAY = True
 INCLUDE_LEGEND = False
 
+SHADED_REGION_COLOR = (0, 1, 1)
+SHADED_REGION_ALPHA = 0.5
+WEEK_START_LINE_COLOR = (0.2, 0.2, 0.2)
+NORMAL_DAY_LINE_COLOR = (0.5, 0.5, 0.5)
+
 
 def process_file_contents(timestamp, contents):
     if station_id in contents:
@@ -38,7 +43,7 @@ def split_dates_and_modulo_time(timestamps, arrays,
     :param timestamps: an array of the timestamps for all the data points (sorted ascending)
     :param arrays: an array of arrays of values for each of the other variables
     :return: an array where each element represents a date, in which each array contains arrays
-             for all the variables (including timestamp)
+             for all the variables (where time of day is inserted as the first array in each array of arrays)
     """
     dates_data = []
     current_date_data = []
@@ -65,36 +70,36 @@ def split_dates_and_modulo_time(timestamps, arrays,
 
 
 def add_weekday_lines(start_date, end_date):
+    """
+    Add lines to the plot to distinguish different days of the week.
+    """
     while start_date <= end_date:
-        if start_date.weekday() == 0:
-            plt.axvline(x=start_date, c=(0.2, 0.2, 0.2))
-        elif start_date.weekday() == 5:
-            plt.axvline(x=start_date, c=(0.5, 0.5, 0.5))
-            plt.axvspan(start_date, start_date + timedelta(days=2), alpha=0.5, color=(0, 1, 1))
+        if start_date.weekday() == 0:  # draw a darker line at the start of the week
+            plt.axvline(x=start_date, c=WEEK_START_LINE_COLOR)
+        elif start_date.weekday() == 5:  # shade the weekend days to distinguish them
+            plt.axvline(x=start_date, c=NORMAL_DAY_LINE_COLOR)
+            plt.axvspan(start_date, start_date + timedelta(days=2),
+                        alpha=SHADED_REGION_ALPHA, color=SHADED_REGION_COLOR)
         else:
-            plt.axvline(x=start_date, c=(0.5, 0.5, 0.5))
+            plt.axvline(x=start_date, c=NORMAL_DAY_LINE_COLOR)
         start_date += timedelta(days=1)
 
 
 def main():
-    assert split_dates_and_modulo_time([0, 1, 2, 3], [[1, 1, 2, 2], [3, 3, 4, 4]],
-                                       date_lambda=lambda x: x // 2, time_lambda=lambda x: x % 2) == \
-           [[[0, 1], [1, 1], [3, 3]], [[0, 1], [2, 2], [4, 4]]]
-
     global station_id
+    station_id = sys.argv[1]
 
     timestamps = []
-    valid = []
+    active = []
     bikes = []
     bikes_and_docks = []
     capacities = []
     points = []
 
-    station_id = sys.argv[1]
-
     start_date = None
     end_time = None
 
+    # read all the files in the processed_output directory to obtain timeseries data
     filenames = os.listdir("processed_output/")
     if not filenames:
         raise Exception("no files found in processed_output/")
@@ -104,11 +109,15 @@ def main():
             contents = json.load(file_stream)
             timestamp = datetime.fromtimestamp(int(filename.split(".")[0]))
         if start_date is None:
+            # gets the start date as a date object (with 00:00 as the time of day)
             start_date = datetime.combine(timestamp.date(), datetime.min.time())
-        end_time = timestamp  # todo: make this better
+        end_time = timestamp  # todo: Is there a more efficient way to do this than reassigning this each loop?
         id_contents = process_file_contents(timestamp, contents)
         timestamps.append(timestamp)
-        valid.append((0, 1, 0) if id_contents[0] else (0, 0.5, 0))
+
+        # The following lines depend on the serialization format from
+        # process_data.py - should this be standardized/documented?
+        active.append(id_contents[0])  # TODO: incorporate this into the plot?
         bikes.append(id_contents[1])
         bikes_and_docks.append(id_contents[1] + id_contents[2])
         capacities.append(id_contents[3])
@@ -116,20 +125,20 @@ def main():
             points.append(id_contents[4])
         else:
             points.append(None)
+    end_date = datetime.combine(end_time.date(), datetime.min.time())
 
+    # read the name of the station whose ID was specified as a command-line argument
     with open("overall_stations.txt") as file_stream:
         contents = json.load(file_stream)
     name = contents[station_id]["name"][-1][1]
 
-    end_date = datetime.combine(end_time.date(), datetime.min.time())
-
     # TODO: deal with inactive stations
+
+    # create the plot
     if OVERLAY_SINGLE_DAY:
         for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, [points])):
             if i % 7 in [0, 1, 2, 3, 6]:
                 for variable_array in date_array[1:]:
-                    # the date you put in here doesn't matter - just a filler
-                    # TODO: graph by hour of day instead??? or maybe just change x-axis labels
                     # [x % 2 if x is not None else None for x in variable_array]
                     plt.plot(date_array[0], [x % 2 if x is not None else None for x in variable_array], label=i)
         plt.axis(ymin=-3, ymax=3)
@@ -147,6 +156,7 @@ def main():
     if INCLUDE_LEGEND:
         plt.legend()
 
+    # add labels/ticks to the plot, and then show it
     plt.xlabel("Date/Time")
     xmin, xmax, ymin, ymax = plt.axis()
     plt.yticks(np.arange(ymin, ymax + 1, step=1))
