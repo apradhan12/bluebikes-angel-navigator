@@ -136,11 +136,12 @@ def main():
 
     # create the plot
     if OVERLAY_SINGLE_DAY:
-        for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, [points])):
+        variables_to_graph = [points]  # change this to add more variables to the plot (doesn't work well currently)
+        for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, variables_to_graph)):
             if i % 7 in [0, 1, 2, 3, 6]:
                 for variable_array in date_array[1:]:
                     # [x % 2 if x is not None else None for x in variable_array]
-                    plt.plot(date_array[0], [x % 2 if x is not None else None for x in variable_array], label=i)
+                    plt.plot(date_array[0], variable_array, label=i)
         plt.axis(ymin=-3, ymax=3)
         # replace "on weekdays" appropriately
         plt.title(f"Angel point values on weekdays at {name} (station ID {station_id})")
