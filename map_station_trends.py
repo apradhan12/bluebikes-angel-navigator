@@ -6,6 +6,7 @@ import json
 import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
+from geopy.distance import distance
 import statistics
 import argparse
 
@@ -14,6 +15,9 @@ is_weekend = None
 
 UPPER_LEFT_CORNER = (42.4379, -71.3538)
 LOWER_RIGHT_CORNER = (42.2059, -70.8148)
+
+RADIUS_MILES = 0.5
+MIN_DIFF = 2.5
 
 
 def is_one_hour_after(dt2, dt1):
@@ -139,9 +143,18 @@ def main():
     boston = plt.imread("map.png")
 
     fig, ax = plt.subplots(figsize=(8, 7))
-    ax.scatter(longitudes_list, latitudes_list, zorder=1, alpha=1.0, c=colors_list, s=sizes_list)
+    ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
     for i, station_id in enumerate(station_ids_list):
-        ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small")
+        ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
+
+    for i, sid1 in enumerate(station_ids_list):
+        for j in range(i + 1, len(station_ids_list)):
+            coords1 = (latitudes_list[i], longitudes_list[i])
+            coords2 = (latitudes_list[j], longitudes_list[j])
+            avg1 = averages_list[i]
+            avg2 = averages_list[j]
+            if distance(coords1, coords2).miles < RADIUS_MILES and abs(avg1 - avg2) > MIN_DIFF:
+                plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
 
     ax.set_title(f"Change in number of bikes from {desired_hour}:00 to {(desired_hour + 1) % 24}:00 on "
                  f"{'weekends' if is_weekend else 'weekdays'}")
