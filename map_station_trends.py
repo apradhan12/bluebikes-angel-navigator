@@ -114,9 +114,9 @@ def main():
 
     station_ids_list, station_statistics_list = zip(*all_station_statistics.items())
     averages_list, stdevs_list = zip(*station_statistics_list)
-    print(sorted(
+    print(json.dumps(sorted(
         zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list],
-            station_ids_list)))
+            station_ids_list))))
     # print(sorted([round(avg, ndigits=2) for avg in averages_list]))
     # print(stdevs_list)
     print(sum(stdevs_list) / len(stdevs_list))
@@ -140,6 +140,9 @@ def main():
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.scatter(longitudes_list, latitudes_list, zorder=1, alpha=1.0, c=colors_list, s=sizes_list)
+    for i, station_id in enumerate(station_ids_list):
+        ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small")
+
     ax.set_title(f"Change in number of bikes from {desired_hour}:00 to {(desired_hour + 1) % 24}:00 on "
                  f"{'weekends' if is_weekend else 'weekdays'}")
     ax.set_xlim(bbox[0], bbox[1])
