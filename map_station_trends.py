@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
 import statistics
+import argparse
 
-DESIRED_HOUR = 8
+desired_hour = None
+is_weekend = None
 
 UPPER_LEFT_CORNER = (42.4379, -71.3538)
 LOWER_RIGHT_CORNER = (42.2059, -70.8148)
@@ -24,8 +26,11 @@ def is_one_hour_after(dt2, dt1):
 
 
 def in_time_interval(dt):
-    weekdays = [0, 1, 2, 3, 4]
-    return dt.weekday() in weekdays and dt.hour == DESIRED_HOUR
+    if is_weekend:
+        desired_days = [5, 6]
+    else:
+        desired_days = [0, 1, 2, 3, 4]
+    return dt.weekday() in desired_days and dt.hour == desired_hour
 
 
 def average_to_color(avg):
@@ -41,6 +46,15 @@ def stdev_to_size(avg, stdev):
 
 
 def main():
+    global desired_hour, is_weekend
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("hour")
+    parser.add_argument("-w", "--weekend", help="show weekends", action="store_true")
+    args = parser.parse_args()
+    desired_hour = int(args.hour)
+    is_weekend = args.weekend
+
     # read all the files in the processed_output directory to obtain timeseries data
     filenames = os.listdir("processed_output/")
     if not filenames:
@@ -92,6 +106,8 @@ def main():
             else:
                 pass
                 # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
+        if len(deltas) < 2:
+            raise ValueError(f"len(deltas) is < 2 for id {station}")
         avg = sum(deltas) / len(deltas) if deltas else None
         stdev = statistics.stdev(deltas) if len(deltas) >= 2 else None
         all_station_statistics[station] = [avg, stdev]
@@ -124,7 +140,8 @@ def main():
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.scatter(longitudes_list, latitudes_list, zorder=1, alpha=1.0, c=colors_list, s=sizes_list)
-    ax.set_title(f"Change in number of bikes from {DESIRED_HOUR}:00 to {(DESIRED_HOUR + 1) % 24}:00 on weekdays")
+    ax.set_title(f"Change in number of bikes from {desired_hour}:00 to {(desired_hour + 1) % 24}:00 on "
+                 f"{'weekends' if is_weekend else 'weekdays'}")
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
