@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import math
 import os
 import json
@@ -7,7 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 import statistics
 
-DESIRED_HOUR = 17
+DESIRED_HOUR = 8
 
 UPPER_LEFT_CORNER = (42.4379, -71.3538)
 LOWER_RIGHT_CORNER = (42.2059, -70.8148)
@@ -40,16 +41,6 @@ def stdev_to_size(avg, stdev):
 
 
 def main():
-    timestamps = []
-    active = []
-    bikes = []
-    bikes_and_docks = []
-    capacities = []
-    points = []
-
-    start_date = None
-    end_time = None
-
     # read all the files in the processed_output directory to obtain timeseries data
     filenames = os.listdir("processed_output/")
     if not filenames:
@@ -107,7 +98,9 @@ def main():
 
     station_ids_list, station_statistics_list = zip(*all_station_statistics.items())
     averages_list, stdevs_list = zip(*station_statistics_list)
-    print(sorted(zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list], station_ids_list)))
+    print(sorted(
+        zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list],
+            station_ids_list)))
     # print(sorted([round(avg, ndigits=2) for avg in averages_list]))
     # print(stdevs_list)
     print(sum(stdevs_list) / len(stdevs_list))
