@@ -5,102 +5,12 @@ import json
 import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
-import numpy as np
 import statistics
-import sys
 
-OVERLAY_SINGLE_DAY = True
-INCLUDE_LEGEND = False
+DESIRED_HOUR = 17
 
-SHADED_REGION_COLOR = (0, 1, 1)
-SHADED_REGION_ALPHA = 0.5
-WEEK_START_LINE_COLOR = (0.2, 0.2, 0.2)
-NORMAL_DAY_LINE_COLOR = (0.5, 0.5, 0.5)
-
-
-# def process_file_contents(timestamp, contents, all_timestamps):
-#     """Processes the file contents and adds the relevant data to all_timestamps"""
-#     # all_timestamps = {
-#     #     "10": {
-#     #         "3": 30,
-#     #         "4": 15
-#     #     },
-#     #     "11": {
-#     #         "3": 32,
-#     #         "4": 12
-#     #     }
-#     # }
-#     relevant_contents = {}
-#     for station_id, data in contents.items():
-#         relevant_contents[station_id] = data[]
-
-
-
-def initialize_current_date_data(arrays):
-    # initialize current_date_data to the same number of empty arrays as there are variables
-    current_date_data = []
-    for _ in range(len(arrays) + 1):  # add one extra empty array for timestamps
-        current_date_data.append([])
-    return current_date_data
-
-
-def split_dates_and_modulo_time(timestamps, arrays,
-                                date_lambda=lambda dt: dt.date(),
-                                time_lambda=lambda dt: dt.time().hour + dt.time().minute / 60):
-    """
-    :param time_lambda: lambda to get time of day from datetime object
-                        (result needs to eventually be parsed to float for matplotlib, if not float already)
-    :param date_lambda: lambda to convert datetime object to date
-    :param timestamps: an array of the timestamps for all the data points (sorted ascending)
-    :param arrays: an array of arrays of values for each of the other variables
-    :return: an array where each element represents a date, in which each array contains arrays
-             for all the variables (where time of day is inserted as the first array in each array of arrays)
-    """
-    dates_data = []
-    current_date_data = []
-    previous_date = None
-    for i, timestamp in enumerate(timestamps):
-        # print(timestamp)
-        if previous_date is None:
-            previous_date = date_lambda(timestamp)
-            current_date_data = initialize_current_date_data(arrays)
-        elif date_lambda(timestamp) != previous_date:
-            # print(f"{date_lambda(timestamp)} != {previous_date}")
-            dates_data.append(current_date_data)
-            previous_date = date_lambda(timestamp)
-            current_date_data = initialize_current_date_data(arrays)
-        # print(current_date_data)
-
-        # add the data from the current timestamp
-        current_date_data[0].append(time_lambda(timestamp))
-        for j, array in enumerate(arrays):
-            current_date_data[j + 1].append(array[i])
-    dates_data.append(current_date_data)
-
-    return dates_data
-
-
-def add_weekday_lines(start_date, end_date):
-    """
-    Add lines to the plot to distinguish different days of the week.
-    """
-    while start_date <= end_date:
-        if start_date.weekday() == 0:  # draw a darker line at the start of the week
-            plt.axvline(x=start_date, c=WEEK_START_LINE_COLOR)
-        elif start_date.weekday() == 5:  # shade the weekend days to distinguish them
-            plt.axvline(x=start_date, c=NORMAL_DAY_LINE_COLOR)
-            plt.axvspan(start_date, start_date + timedelta(days=2),
-                        alpha=SHADED_REGION_ALPHA, color=SHADED_REGION_COLOR)
-        else:
-            plt.axvline(x=start_date, c=NORMAL_DAY_LINE_COLOR)
-        start_date += timedelta(days=1)
-
-
-def datetime_to_date(dt):
-    """
-    Gets a date from a datetime, i.e. the corresponding datetime object with the time of day set to midnight.
-    """
-    return datetime.combine(dt.date(), datetime.min.time())
+UPPER_LEFT_CORNER = (42.4379, -71.3538)
+LOWER_RIGHT_CORNER = (42.2059, -70.8148)
 
 
 def is_one_hour_after(dt2, dt1):
@@ -114,8 +24,7 @@ def is_one_hour_after(dt2, dt1):
 
 def in_time_interval(dt):
     weekdays = [0, 1, 2, 3, 4]
-    hour = 17
-    return dt.weekday() in weekdays and dt.hour == hour
+    return dt.weekday() in weekdays and dt.hour == DESIRED_HOUR
 
 
 def average_to_color(avg):
@@ -124,8 +33,10 @@ def average_to_color(avg):
     return red, green, 0
 
 
-def stdev_to_size(stdev):
-    return 20 * (1.3 ** -stdev)
+def stdev_to_size(avg, stdev):
+    if abs(avg) > 1:
+        return 200 * (2 ** (-1 * stdev))
+    return 20
 
 
 def main():
@@ -188,15 +99,21 @@ def main():
                     pass
                     # print(f"Weekday is {first_dt.weekday()} and time is {first_dt.hour}, skipping")
             else:
-                print(f"Timestamp delta is {second_dt - first_dt}, skipping")
+                pass
+                # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
         avg = sum(deltas) / len(deltas) if deltas else None
         stdev = statistics.stdev(deltas) if len(deltas) >= 2 else None
         all_station_statistics[station] = [avg, stdev]
 
     station_ids_list, station_statistics_list = zip(*all_station_statistics.items())
     averages_list, stdevs_list = zip(*station_statistics_list)
+    print(sorted(zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list], station_ids_list)))
+    # print(sorted([round(avg, ndigits=2) for avg in averages_list]))
+    # print(stdevs_list)
+    print(sum(stdevs_list) / len(stdevs_list))
+    print(statistics.stdev(stdevs_list))
     colors_list = [average_to_color(avg) for avg in averages_list]
-    sizes_list = [stdev_to_size(stdev) for stdev in stdevs_list]
+    sizes_list = [stdev_to_size(avg, stdev) for avg, stdev in zip(averages_list, stdevs_list)]
     longitudes_list = []
     latitudes_list = []
 
@@ -207,51 +124,18 @@ def main():
         latitudes_list.append(contents[station_id]["coords"][-1][1][0])
         longitudes_list.append(contents[station_id]["coords"][-1][1][1])
 
-    UPPER_LEFT_CORNER = (42.4379, -71.3538)
-    LOWER_RIGHT_CORNER = (42.2059, -70.8148)
-
-    BBox = (UPPER_LEFT_CORNER[1], LOWER_RIGHT_CORNER[1],
+    bbox = (UPPER_LEFT_CORNER[1], LOWER_RIGHT_CORNER[1],
             LOWER_RIGHT_CORNER[0], UPPER_LEFT_CORNER[0])
 
     boston = plt.imread("map.png")
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.scatter(longitudes_list, latitudes_list, zorder=1, alpha=1.0, c=colors_list, s=sizes_list)
-    ax.set_title('Bike Stations')
-    ax.set_xlim(BBox[0], BBox[1])
-    ax.set_ylim(BBox[2], BBox[3])
-    ax.imshow(boston, zorder=0, extent=BBox, aspect="auto")
+    ax.set_title(f"Change in number of bikes from {DESIRED_HOUR}:00 to {(DESIRED_HOUR + 1) % 24}:00 on weekdays")
+    ax.set_xlim(bbox[0], bbox[1])
+    ax.set_ylim(bbox[2], bbox[3])
+    ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
     plt.show()
-
-    # # create the plot
-    # if OVERLAY_SINGLE_DAY:
-    #     variables_to_graph = [points]  # change this to add more variables to the plot (doesn't work well currently)
-    #     for i, date_array in enumerate(split_dates_and_modulo_time(timestamps, variables_to_graph)):
-    #         if i % 7 in [0, 1, 2, 3, 6]:
-    #             for variable_array in date_array[1:]:
-    #                 # [x % 2 if x is not None else None for x in variable_array]
-    #                 plt.plot(date_array[0], variable_array, label=i)
-    #     plt.axis(ymin=-3, ymax=3)
-    #     # replace "on weekdays" appropriately
-    #     plt.title(f"Angel point values on weekdays at {name} (station ID {station_id})")
-    # else:
-    #     plt.axis(ymin=-3)
-    #     plt.title(f"Bike capacity at {name} (station ID {station_id})")
-    #     plt.plot(timestamps, bikes, label="# Bikes")
-    #     plt.plot(timestamps, bikes_and_docks, label="# Bikes + Docks")
-    #     plt.plot(timestamps, capacities, label="Capacity")
-    #     plt.plot(timestamps, points, label="Angel Points")
-    #     add_weekday_lines(start_date, end_date)
-    #
-    # if INCLUDE_LEGEND:
-    #     plt.legend()
-    #
-    # # add labels/ticks to the plot, and then show it
-    # plt.xlabel("Date/Time")
-    # xmin, xmax, ymin, ymax = plt.axis()
-    # plt.yticks(np.arange(ymin, ymax + 1, step=1))
-    #
-    # plt.show()
 
 
 if __name__ == "__main__":
