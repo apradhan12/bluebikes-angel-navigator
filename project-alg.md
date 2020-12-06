@@ -62,3 +62,19 @@ additional features:
 
 noticings:
 - Northeastern typically dips weekend afternoons whereas MIT typically goes up
+
+## More questions 12-6-2020
+
+- When are the stations near me in greatest need? (both in terms of points *and* rate of change in bike station fullness - hopefully these two are strongly correlated)
+- If I want to get Angel Points when I go to/from work, which station do I need to go to, and how should I adjust my commute time?
+- If I want to make sure I always have a bike when I want to go somewhere around a particular time, which station(s) and time(s) are my safest bet?
+- As the system moves forward from a given state, with what level of confidence do we know its output (as a function of elapsed time and start time)?
+---
+- At any given time, the best short-term strategy for collecting points is to go to a pair of stations close to each other with a large point difference.
+- Which of these pairs will give me the most points as I bike?
+    - during the course of the hour following the start of my point-gathering, what is the average rate of change of bikes at these two stations?
+    - what is the capacity of each of the stations?
+---
+- Even if we can't create paths for people, we can at least point them to the best pairs
+- plot a map for average # of angel points at a given time/weekday - this will help inform the problem
+- draw lines between stations with a high point differential and a low distance between them
