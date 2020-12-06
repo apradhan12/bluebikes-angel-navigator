@@ -15,5 +15,4 @@ if __name__ == "__main__":
     ax.set_xlim(BBox[0], BBox[1])
     ax.set_ylim(BBox[2], BBox[3])
     ax.imshow(boston, zorder=0, extent=BBox, aspect="auto")
-    print("mama I made it!")
     plt.show()

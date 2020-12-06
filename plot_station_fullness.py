@@ -110,7 +110,7 @@ def main():
             timestamp = datetime.fromtimestamp(int(filename.split(".")[0]))
         if start_date is None:
             # gets the start date as a date object (with 00:00 as the time of day)
-            start_date = datetime.combine(timestamp.date(), datetime.min.time())
+            start_date = datetime.combine(timestamp.date(), datetime.min.time())  # todo: could probably just use a date object instead
         end_time = timestamp  # todo: Is there a more efficient way to do this than reassigning this each loop?
         id_contents = process_file_contents(timestamp, contents)
         timestamps.append(timestamp)
