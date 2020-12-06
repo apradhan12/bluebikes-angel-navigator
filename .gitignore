@@ -1,3 +1,4 @@
 raw_output/
 .idea/
 __pycache__/
+venv/
