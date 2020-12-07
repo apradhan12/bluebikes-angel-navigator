@@ -183,6 +183,13 @@ def main():
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
+
+    textstr = "\n".join((
+        r"$\mu=%.3f$" % (sum(stdevs_list) / len(stdevs_list)),
+        r"$\sigma=%.3f$" % statistics.stdev(stdevs_list)))
+
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
+            verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
     plt.show()
 
 
