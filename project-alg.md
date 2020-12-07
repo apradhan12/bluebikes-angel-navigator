@@ -85,4 +85,6 @@ noticings:
 - Does the stdev of the number of points go down when you only allow similar point values?
 
 Things to do:
-- animate the graph to see values over time
+- animate the graph to see values over time (git stashed)
+- only show data points where the number of bikes was within some small margin of the first reading
+    - this will give us a sense of how accurate a [neural network algorithm for angel points] might be that takes into account only bikes and time/weekday
