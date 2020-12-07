@@ -11,9 +11,6 @@ from geopy.distance import distance
 import statistics
 import argparse
 
-desired_hour = None
-is_weekend = None
-
 UPPER_LEFT_CORNER = (42.4379, -71.3538)
 LOWER_RIGHT_CORNER = (42.2059, -70.8148)
 
@@ -35,7 +32,7 @@ def is_one_hour_after(dt2, dt1):
     return False
 
 
-def in_time_interval(dt):
+def in_time_interval(dt, desired_hour, is_weekend):
     if is_weekend:
         desired_days = [5, 6]
     else:
@@ -62,8 +59,7 @@ def stdev_to_size(avg, stdev):
 #         p[i].set_color(color[i])  # set the colour of each curve
 
 
-def draw(ax, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list):
-    global desired_hour
+def draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list):
     # fig, ax = plt.subplots()
     ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
     for i, station_id in enumerate(station_ids_list):
@@ -86,8 +82,6 @@ def draw(ax, longitudes_list, latitudes_list, colors_list, sizes_list, station_i
 
 
 def main():
-    global desired_hour, is_weekend
-
     parser = argparse.ArgumentParser()
     parser.add_argument("hour")
     parser.add_argument("-w", "--weekend", help="show weekends", action="store_true")
@@ -142,7 +136,7 @@ def main():
                 first_dt = datetime.fromtimestamp(first[0])
                 second_dt = datetime.fromtimestamp(second[0])
                 if is_one_hour_after(second_dt, first_dt):
-                    if in_time_interval(first_dt):
+                    if in_time_interval(first_dt, desired_hour, is_weekend):
                         values.append(second[1] - first[1])
                     else:
                         pass
@@ -151,7 +145,8 @@ def main():
                     pass
                     # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
         else:
-            values = [ts_item[1] for ts_item in timestamp_items if in_time_interval(datetime.fromtimestamp(ts_item[0]))]
+            values = [ts_item[1] for ts_item in timestamp_items if
+                      in_time_interval(datetime.fromtimestamp(ts_item[0]), desired_hour, is_weekend)]
         if len(values) < 2:
             raise ValueError(f"len(values) is < 2 for id {station}")
 
@@ -201,7 +196,7 @@ def main():
                 # plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
     fig, ax = plt.subplots()
 
-    draw(ax, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list)
+    draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list)
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
