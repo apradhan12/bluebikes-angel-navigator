@@ -25,6 +25,8 @@ MIN_DIFF_HOUR_POINTS = 1
 USE_POINTS = True
 SHOW_RATE_OF_CHANGE = False
 
+USE_CACHED_NEARBY_PAIRS = True
+
 
 def is_one_hour_after(dt2, dt1):
     """Is floor(dt2) exactly 1 hour after floor(dt1)?"""
@@ -196,10 +198,18 @@ def get_station_coords_lists(station_ids_list):
 
 
 def calculate_lucrative_station_pairs(station_ids_list, latitudes_list, longitudes_list, averages_list):
-    nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
+    if USE_CACHED_NEARBY_PAIRS:
+        try:
+            with open("nearby_station_pairs.json") as file_stream:
+                nearby_stations = json.load(file_stream)
+        except FileNotFoundError:
+            nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
+            with open("nearby_station_pairs.json", "w") as file_stream:
+                json.dump(nearby_stations, file_stream)
+    else:
+        nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
     lines = [[] for _ in range(24)]
     for hour in range(24):
-        print(f"Finding lines for hour {hour}")
         for i, stations_list in enumerate(nearby_stations):
             for j in stations_list:
                 coords1 = (latitudes_list[i], longitudes_list[i])
@@ -250,8 +260,9 @@ def main():
              colors_list[hr], sizes_list[hr], station_ids_list,
              lines[hr], stdevs_list[hr])
 
-    animator = ani.FuncAnimation(fig, build_chart, interval=500)
+    animator = ani.FuncAnimation(fig, build_chart, interval=500, frames=24, repeat=True)
     plt.show()
+    # animator.save('my_animation.gif', writer='imagemagick', fps=10)
 
 
 if __name__ == "__main__":
