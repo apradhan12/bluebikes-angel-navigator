@@ -17,7 +17,12 @@ UPPER_LEFT_CORNER = (42.4379, -71.3538)
 LOWER_RIGHT_CORNER = (42.2059, -70.8148)
 
 RADIUS_MILES = 0.5
-MIN_DIFF = 2.5
+MIN_DIFF_HOUR_BIKES_DELTA = 2.5
+MIN_DIFF_HOUR_POINTS = 1
+
+# must be either True/False or False/True for now
+USE_POINTS = True
+SHOW_RATE_OF_CHANGE = False
 
 
 def is_one_hour_after(dt2, dt1):
@@ -88,32 +93,39 @@ def main():
                 for station, values in contents.items():
                     if station not in all_stations:
                         all_stations[station] = {}
-                    all_stations[station][timestamp] = contents[station][1]  # only tracking number of bikes for now
+                    if USE_POINTS:
+                        all_stations[station][timestamp] = contents[station][4] if len(contents[station]) == 5 else 0
+                    else:  # bikes
+                        all_stations[station][timestamp] = contents[station][1]
             previous_date = dt.date()
             previous_hour = dt.hour
 
     all_station_statistics = {}
     for station in all_stations:
         timestamp_items = list(all_stations[station].items())
-        deltas = []
-        for i in range(len(timestamp_items) - 1):
-            first = timestamp_items[i]  # e.g. (123456789, 12)
-            second = timestamp_items[i + 1]
-            first_dt = datetime.fromtimestamp(first[0])
-            second_dt = datetime.fromtimestamp(second[0])
-            if is_one_hour_after(second_dt, first_dt):
-                if in_time_interval(first_dt):
-                    deltas.append(second[1] - first[1])
+        if SHOW_RATE_OF_CHANGE:  # can show values themselves, or rate of change from value to value
+            values = []
+            for i in range(len(timestamp_items) - 1):
+                first = timestamp_items[i]  # e.g. (123456789, 12)
+                second = timestamp_items[i + 1]
+                first_dt = datetime.fromtimestamp(first[0])
+                second_dt = datetime.fromtimestamp(second[0])
+                if is_one_hour_after(second_dt, first_dt):
+                    if in_time_interval(first_dt):
+                        values.append(second[1] - first[1])
+                    else:
+                        pass
+                        # print(f"Weekday is {first_dt.weekday()} and time is {first_dt.hour}, skipping")
                 else:
                     pass
-                    # print(f"Weekday is {first_dt.weekday()} and time is {first_dt.hour}, skipping")
-            else:
-                pass
-                # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
-        if len(deltas) < 2:
-            raise ValueError(f"len(deltas) is < 2 for id {station}")
-        avg = sum(deltas) / len(deltas) if deltas else None
-        stdev = statistics.stdev(deltas) if len(deltas) >= 2 else None
+                    # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
+        else:
+            values = [ts_item[1] for ts_item in timestamp_items if in_time_interval(datetime.fromtimestamp(ts_item[0]))]
+        if len(values) < 2:
+            raise ValueError(f"len(values) is < 2 for id {station}")
+
+        avg = sum(values) / len(values) if values else None
+        stdev = statistics.stdev(values) if len(values) >= 2 else None
         all_station_statistics[station] = [avg, stdev]
 
     station_ids_list, station_statistics_list = zip(*all_station_statistics.items())
@@ -153,11 +165,21 @@ def main():
             coords2 = (latitudes_list[j], longitudes_list[j])
             avg1 = averages_list[i]
             avg2 = averages_list[j]
-            if distance(coords1, coords2).miles < RADIUS_MILES and abs(avg1 - avg2) > MIN_DIFF:
+            if USE_POINTS and not SHOW_RATE_OF_CHANGE:  # TODO: update this when we add more options
+                surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_POINTS
+            else:
+                surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_BIKES_DELTA
+            if distance(coords1, coords2).miles < RADIUS_MILES and surpasses_min_diff:
                 plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
 
-    ax.set_title(f"Change in number of bikes from {desired_hour}:00 to {(desired_hour + 1) % 24}:00 on "
-                 f"{'weekends' if is_weekend else 'weekdays'}")
+    if SHOW_RATE_OF_CHANGE:
+        ax.set_title(
+            f"Change in number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
+            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
+    else:
+        ax.set_title(
+            f"Number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
+            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
