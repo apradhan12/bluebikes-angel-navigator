@@ -154,7 +154,7 @@ def main():
 
     boston = plt.imread("map.png")
 
-    fig, ax = plt.subplots(figsize=(8, 7))
+    fig, ax = plt.subplots()
     ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
     for i, station_id in enumerate(station_ids_list):
         ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
