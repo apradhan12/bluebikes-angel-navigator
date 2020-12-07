@@ -52,13 +52,6 @@ def stdev_to_size(avg, stdev):
     return 20
 
 
-# def buildmebarchart(i=int):
-#     plt.legend(df1.columns)
-#     p = plt.plot(df1[:i].index, df1[:i].values)  # note it only returns the dataset, up to the point i
-#     for i in range(0, 4):
-#         p[i].set_color(color[i])  # set the colour of each curve
-
-
 def draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list):
     # fig, ax = plt.subplots()
     ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
@@ -81,12 +74,34 @@ def draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_l
             verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
 
 
+def matches_desired_weekdays(dt, is_weekend):
+    if is_weekend:
+        desired_days = [5, 6]
+    else:
+        desired_days = [0, 1, 2, 3, 4]
+    return dt.weekday() in desired_days
+
+
+def calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list):
+    """
+    Returns a list (where each element corresponds to a station) of lists of stations with a
+    strictly higher ID number that are within RADIUS_MILES of the station.
+    """
+    nearby_stations = [[] for _ in station_ids_list]
+    for i, sid1 in enumerate(station_ids_list):
+        for j in range(i + 1, len(station_ids_list)):
+            coords1 = (latitudes_list[i], longitudes_list[i])
+            coords2 = (latitudes_list[j], longitudes_list[j])
+            if distance(coords1, coords2).miles < RADIUS_MILES:
+                nearby_stations[i].append(j)
+                # lines.append(([coords1[1], coords2[1]], [coords1[0], coords2[0]]))
+    return nearby_stations
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("hour")
     parser.add_argument("-w", "--weekend", help="show weekends", action="store_true")
     args = parser.parse_args()
-    desired_hour = int(args.hour)
     is_weekend = args.weekend
 
     # read all the files in the processed_output directory to obtain timeseries data
@@ -112,6 +127,7 @@ def main():
     for filename in filenames:
         timestamp = int(filename.split(".")[0])
         dt = datetime.fromtimestamp(timestamp)
+        # read the first file in every unique hour
         if previous_hour is None or previous_date != dt.date() or previous_hour != dt.hour:
             with open(f"processed_output/{filename}") as file_stream:
                 contents = json.load(file_stream)
@@ -125,19 +141,19 @@ def main():
             previous_date = dt.date()
             previous_hour = dt.hour
 
-    all_station_statistics = {}
+    all_station_statistics = [{} for _ in range(24)]
     for station in all_stations:
         timestamp_items = list(all_stations[station].items())
+        values = [[] for _ in range(24)]
         if SHOW_RATE_OF_CHANGE:  # can show values themselves, or rate of change from value to value
-            values = []
             for i in range(len(timestamp_items) - 1):
                 first = timestamp_items[i]  # e.g. (123456789, 12)
                 second = timestamp_items[i + 1]
                 first_dt = datetime.fromtimestamp(first[0])
                 second_dt = datetime.fromtimestamp(second[0])
                 if is_one_hour_after(second_dt, first_dt):
-                    if in_time_interval(first_dt, desired_hour, is_weekend):
-                        values.append(second[1] - first[1])
+                    if matches_desired_weekdays(first_dt, is_weekend):
+                        values[first_dt.hour].append(second[1] - first[1])
                     else:
                         pass
                         # print(f"Weekday is {first_dt.weekday()} and time is {first_dt.hour}, skipping")
@@ -145,30 +161,62 @@ def main():
                     pass
                     # print(f"Timestamp delta is {second_dt - first_dt}, skipping")
         else:
-            values = [ts_item[1] for ts_item in timestamp_items if
-                      in_time_interval(datetime.fromtimestamp(ts_item[0]), desired_hour, is_weekend)]
-        if len(values) < 2:
+            for ts_item in timestamp_items:
+                dt = datetime.fromtimestamp(ts_item[0])
+                if matches_desired_weekdays(dt, is_weekend):
+                    values[dt.hour].append(ts_item[1])
+        if any(len(hourly_values) < 2 for hourly_values in values):
             raise ValueError(f"len(values) is < 2 for id {station}")
 
-        avg = sum(values) / len(values) if values else None
-        stdev = statistics.stdev(values) if len(values) >= 2 else None
-        all_station_statistics[station] = [avg, stdev]
+        for hour, hourly_values in enumerate(values):
+            avg = sum(hourly_values) / len(hourly_values)
+            stdev = statistics.stdev(hourly_values)
+            all_station_statistics[hour][station] = [avg, stdev]
 
-    station_ids_list, station_statistics_list = zip(*all_station_statistics.items())
-    averages_list, stdevs_list = zip(*station_statistics_list)
-    print(json.dumps(sorted(
-        zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list],
-            station_ids_list))))
-    # print(sorted([round(avg, ndigits=2) for avg in averages_list]))
-    # print(stdevs_list)
-    print(sum(stdevs_list) / len(stdevs_list))
-    print(statistics.stdev(stdevs_list))
-    colors_list = [average_to_color(avg) for avg in averages_list]
-    sizes_list = [stdev_to_size(avg, stdev) for avg, stdev in zip(averages_list, stdevs_list)]
-    longitudes_list = []
-    latitudes_list = []
+    station_ids_list = sorted(all_station_statistics[0].keys())
+    # create a unified order for the stations
+    station_statistics_list = [[hourly_stats_dict[sid] for sid in station_ids_list]
+                               for hourly_stats_dict in all_station_statistics]
+    """
+    [
+        {"3": [-2.2, 1.25]}, # 0
+        {}, # 1
+        {}, # ...
+        {}  # 23
+    ]
+    [
+        [[-2.2, 1.25], [-1, 0.93]], # 0
+        [], # 1
+        [], # ...
+        []  # 23
+    ]
+    
+    [
+        [-2.2, -1],
+        [],
+        [],
+        []
+    ]
+    """
+    # draw(ax, hour, is_weekend, X longitudes_list, X latitudes_list,
+    #              X colors_list[hour], X sizes_list[hour], station_ids_list,
+    #              lines[hour], stdevs_list[hour])
+
+    averages_list = [[station_tuple[0] for station_tuple in hourly_list] for hourly_list in station_statistics_list]
+    stdevs_list = [[station_tuple[1] for station_tuple in hourly_list] for hourly_list in station_statistics_list]
+
+    # print(json.dumps(sorted(
+    #     zip([round(avg, ndigits=2) for avg in averages_list], [round(stdev, ndigits=2) for stdev in stdevs_list],
+    #         station_ids_list))))
+
+    colors_list = [[average_to_color(station_tuple[0]) for station_tuple in hourly_list]
+                   for hourly_list in station_statistics_list]
+    sizes_list = [[stdev_to_size(station_tuple[0], station_tuple[1]) for station_tuple in hourly_list]
+                  for hourly_list in station_statistics_list]
 
     # get the station coords
+    longitudes_list = []
+    latitudes_list = []
     with open("overall_stations.txt") as file_stream:
         contents = json.load(file_stream)
     for station_id in station_ids_list:
@@ -180,34 +228,35 @@ def main():
 
     boston = plt.imread("map.png")
 
-    lines = []
-    for i, sid1 in enumerate(station_ids_list):
-        for j in range(i + 1, len(station_ids_list)):
-            coords1 = (latitudes_list[i], longitudes_list[i])
-            coords2 = (latitudes_list[j], longitudes_list[j])
-            avg1 = averages_list[i]
-            avg2 = averages_list[j]
-            if USE_POINTS and not SHOW_RATE_OF_CHANGE:  # TODO: update this when we add more options
-                surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_POINTS
-            else:
-                surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_BIKES_DELTA
-            if distance(coords1, coords2).miles < RADIUS_MILES and surpasses_min_diff:
-                lines.append(([coords1[1], coords2[1]], [coords1[0], coords2[0]]))
-                # plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
-    fig, ax = plt.subplots()
-    # TODO: keep track of nodes that are within 0.5 of each other to avoid recalculating + speed up
+    nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
+    lines = [[] for _ in range(24)]
+    for hour in range(24):
+        print(f"Drawing lines for hour {hour}")
+        for i, stations_list in enumerate(nearby_stations):
+            for j in stations_list:
+                coords1 = (latitudes_list[i], longitudes_list[i])
+                coords2 = (latitudes_list[j], longitudes_list[j])
+                avg1 = averages_list[hour][i]
+                avg2 = averages_list[hour][j]
+                if USE_POINTS and not SHOW_RATE_OF_CHANGE:
+                    surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_POINTS
+                else:
+                    surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_BIKES_DELTA
+                if surpasses_min_diff:
+                    lines[hour].append(([coords1[1], coords2[1]], [coords1[0], coords2[0]]))
 
-    draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list)
+    fig, ax = plt.subplots()
+
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
 
-    def build_chart(hour):
-        draw(ax, hour, is_weekend, longitudes_list, latitudes_list,
-             colors_list[hour], sizes_list[hour], station_ids_list,
-             lines[hour], stdevs_list[hour])
+    def build_chart(hr):
+        draw(ax, hr, is_weekend, longitudes_list, latitudes_list,
+             colors_list[hr], sizes_list[hr], station_ids_list,
+             lines[hr], stdevs_list[hr])
 
-    # animator = ani.FuncAnimation(fig, buildmebarchart, interval=100)
+    animator = ani.FuncAnimation(fig, build_chart, interval=500)
     plt.show()
 
 
