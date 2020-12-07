@@ -195,11 +195,17 @@ def main():
                 lines.append(([coords1[1], coords2[1]], [coords1[0], coords2[0]]))
                 # plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
     fig, ax = plt.subplots()
+    # TODO: keep track of nodes that are within 0.5 of each other to avoid recalculating + speed up
 
     draw(ax, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list)
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
+
+    def build_chart(hour):
+        draw(ax, hour, is_weekend, longitudes_list, latitudes_list,
+             colors_list[hour], sizes_list[hour], station_ids_list,
+             lines[hour], stdevs_list[hour])
 
     # animator = ani.FuncAnimation(fig, buildmebarchart, interval=100)
     plt.show()
