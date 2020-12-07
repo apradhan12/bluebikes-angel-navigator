@@ -78,3 +78,11 @@ noticings:
 - Even if we can't create paths for people, we can at least point them to the best pairs
 - plot a map for average # of angel points at a given time/weekday - this will help inform the problem
 - draw lines between stations with a high point differential and a low distance between them
+---
+- Is the rate of change of bikes in a *normal distribution*?
+- How predictable is the rate of change of bikes compared to the number of points?
+    - probably will use normal distribution CDF (phi) for this
+- Does the stdev of the number of points go down when you only allow similar point values?
+
+Things to do:
+- animate the graph to see values over time
