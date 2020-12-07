@@ -4,6 +4,7 @@ import math
 import os
 import json
 import matplotlib.pyplot as plt
+import matplotlib.animation as ani
 from datetime import datetime
 from datetime import timedelta
 from geopy.distance import distance
@@ -52,6 +53,36 @@ def stdev_to_size(avg, stdev):
     if abs(avg) > 1:
         return 200 * (2 ** (-1 * stdev))
     return 20
+
+
+# def buildmebarchart(i=int):
+#     plt.legend(df1.columns)
+#     p = plt.plot(df1[:i].index, df1[:i].values)  # note it only returns the dataset, up to the point i
+#     for i in range(0, 4):
+#         p[i].set_color(color[i])  # set the colour of each curve
+
+
+def draw(ax, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list):
+    global desired_hour
+    # fig, ax = plt.subplots()
+    ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
+    for i, station_id in enumerate(station_ids_list):
+        ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
+    for line in lines:
+        plt.plot(line[0], line[1], c="b", zorder=1)
+    if SHOW_RATE_OF_CHANGE:
+        ax.set_title(
+            f"Change in number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
+            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
+    else:
+        ax.set_title(
+            f"Number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
+            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
+    textstr = "\n".join((
+        r"$\mu=%.3f$" % (sum(stdevs_list) / len(stdevs_list)),
+        r"$\sigma=%.3f$" % statistics.stdev(stdevs_list)))
+    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
+            verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
 
 
 def main():
@@ -154,11 +185,7 @@ def main():
 
     boston = plt.imread("map.png")
 
-    fig, ax = plt.subplots()
-    ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
-    for i, station_id in enumerate(station_ids_list):
-        ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
-
+    lines = []
     for i, sid1 in enumerate(station_ids_list):
         for j in range(i + 1, len(station_ids_list)):
             coords1 = (latitudes_list[i], longitudes_list[i])
@@ -170,26 +197,16 @@ def main():
             else:
                 surpasses_min_diff = abs(avg1 - avg2) > MIN_DIFF_HOUR_BIKES_DELTA
             if distance(coords1, coords2).miles < RADIUS_MILES and surpasses_min_diff:
-                plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
+                lines.append(([coords1[1], coords2[1]], [coords1[0], coords2[0]]))
+                # plt.plot([coords1[1], coords2[1]], [coords1[0], coords2[0]], c="b", zorder=1)
+    fig, ax = plt.subplots()
 
-    if SHOW_RATE_OF_CHANGE:
-        ax.set_title(
-            f"Change in number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
-            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
-    else:
-        ax.set_title(
-            f"Number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
-            f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
+    draw(ax, longitudes_list, latitudes_list, colors_list, sizes_list, station_ids_list, lines, stdevs_list)
     ax.set_xlim(bbox[0], bbox[1])
     ax.set_ylim(bbox[2], bbox[3])
     ax.imshow(boston, zorder=0, extent=bbox, aspect="auto")
 
-    textstr = "\n".join((
-        r"$\mu=%.3f$" % (sum(stdevs_list) / len(stdevs_list)),
-        r"$\sigma=%.3f$" % statistics.stdev(stdevs_list)))
-
-    ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
-            verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
+    # animator = ani.FuncAnimation(fig, buildmebarchart, interval=100)
     plt.show()
 
 
