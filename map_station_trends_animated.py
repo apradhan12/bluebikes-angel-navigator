@@ -8,6 +8,7 @@ import matplotlib.animation as ani
 from datetime import datetime
 from datetime import timedelta
 from geopy.distance import distance
+from typing import List
 import statistics
 import argparse
 
@@ -257,8 +258,10 @@ def main():
     station_ids_list = sorted(all_station_statistics[0].keys())
     station_statistics_list = [[hourly_stats_dict[sid] for sid in station_ids_list]
                                for hourly_stats_dict in all_station_statistics]
-    averages_list = [[station_tuple[0] for station_tuple in hourly_list] for hourly_list in station_statistics_list]
-    stdevs_list = [[station_tuple[1] for station_tuple in hourly_list] for hourly_list in station_statistics_list]
+    averages_list: List[List[float]] = [[station_tuple[0] for station_tuple in hourly_list]
+                                        for hourly_list in station_statistics_list]
+    stdevs_list: List[List[float]] = [[station_tuple[1] for station_tuple in hourly_list]
+                                      for hourly_list in station_statistics_list]
     colors_list = [[average_to_color(station_tuple[0]) for station_tuple in hourly_list]
                    for hourly_list in station_statistics_list]
     sizes_list = [[stdev_to_size(station_tuple[0], station_tuple[1]) for station_tuple in hourly_list]
@@ -282,6 +285,10 @@ def main():
              lines[hr], averages_list[hr], stdevs_list[hr], show_annotations)
 
     if single_hour is not None:
+        print(json.dumps(sorted(
+            zip([round(avg, ndigits=2) for avg in averages_list[single_hour]],
+                [round(stdev, ndigits=2) for stdev in stdevs_list[single_hour]],
+                station_ids_list))))
         build_chart(single_hour)
     else:
         animator = ani.FuncAnimation(fig, build_chart, interval=interval, frames=24, repeat=True)
