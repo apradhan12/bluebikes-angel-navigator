@@ -53,8 +53,14 @@ def average_to_color(avg):
 
 
 def stdev_to_size(avg, stdev):
-    if abs(avg) > 1:
-        return 200 * (2 ** (-1 * stdev))
+    # TODO: right now the threshold is hardcoded, should be moved to a constant,
+    #       especially if more graph types are added
+    if USE_POINTS:
+        if abs(avg) > 0.5:  # this is points
+            return 200 * (2 ** (-1 * stdev))
+    else:
+        if abs(avg) > 1:  # this is rate of change of bikes
+            return 200 * (2 ** (-1 * stdev))
     return 20
 
 
