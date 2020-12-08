@@ -59,11 +59,11 @@ def stdev_to_size(avg, stdev):
 
 def draw(ax, background_img, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list,
          station_ids_list, lines, averages_list, stdevs_list):
-    # fig, ax = plt.subplots()
+    left, right = plt.xlim()
+    bottom, top = plt.ylim()
     plt.cla()
-
-    ax.set_xlim(BBOX[0], BBOX[1])
-    ax.set_ylim(BBOX[2], BBOX[3])
+    ax.set_xlim(left, right)
+    ax.set_ylim(bottom, top)
 
     ax.imshow(background_img, zorder=0, extent=BBOX, aspect="auto")
     ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
@@ -253,6 +253,9 @@ def main():
 
     boston = plt.imread("map.png")
     fig, ax = plt.subplots()
+
+    ax.set_xlim(BBOX[0], BBOX[1])
+    ax.set_ylim(BBOX[2], BBOX[3])
 
     def build_chart(hr):
         hr = hr % 24
