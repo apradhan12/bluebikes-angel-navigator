@@ -208,11 +208,11 @@ def get_station_coords_lists(station_ids_list):
 def calculate_lucrative_station_pairs(station_ids_list, latitudes_list, longitudes_list, averages_list):
     if USE_CACHED_NEARBY_PAIRS:
         try:
-            with open("nearby_station_pairs.json") as file_stream:
+            with open("data/nearby_station_pairs.json") as file_stream:
                 nearby_stations = json.load(file_stream)
         except FileNotFoundError:
             nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
-            with open("nearby_station_pairs.json", "w") as file_stream:
+            with open("data/nearby_station_pairs.json", "w") as file_stream:
                 json.dump(nearby_stations, file_stream)
     else:
         nearby_stations = calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
