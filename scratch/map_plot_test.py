@@ -7,7 +7,7 @@ BBox = (UPPER_LEFT_CORNER[1], LOWER_RIGHT_CORNER[1],
         LOWER_RIGHT_CORNER[0], UPPER_LEFT_CORNER[0])
 
 if __name__ == "__main__":
-    boston = plt.imread("map.png")
+    boston = plt.imread("images/map.png")
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.scatter([-71.09202978500981], [42.33929173531738], zorder=1, alpha=1.0, c='b', s=10)

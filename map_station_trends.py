@@ -278,7 +278,7 @@ def main():
     # find station pairs
     lines = calculate_lucrative_station_pairs(station_ids_list, latitudes_list, longitudes_list, averages_list)
 
-    boston = plt.imread("map.png")
+    boston = plt.imread("images/map.png")
     fig, ax = plt.subplots()
 
     ax.set_xlim(BBOX[0], BBOX[1])
