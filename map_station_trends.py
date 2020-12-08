@@ -237,7 +237,7 @@ def main():
     global USE_POINTS, SHOW_RATE_OF_CHANGE
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_type", help="type of data to plot ('points' or 'bikes')")
+    parser.add_argument("data_type", help='type of data to plot ("points" or "bikes")')
     parser.add_argument("-w", "--weekend", help="show weekends", action="store_true")
     parser.add_argument("-a", "--show-annotations", help="show annotations", action="store_true")
     parser.add_argument("-s", "--single-hour", help="show only one hour", type=int)
