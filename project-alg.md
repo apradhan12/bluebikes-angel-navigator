@@ -88,3 +88,9 @@ Things to do:
 - animate the graph to see values over time (git stashed)
 - only show data points where the number of bikes was within some small margin of the first reading
     - this will give us a sense of how accurate a [neural network algorithm for angel points] might be that takes into account only bikes and time/weekday
+---
+- add print statements w/ list of averages and stdevs if you do a single hour
+- allow bikes, or delta of points (also, ratios of bikes to capacity, i.e. percent full?)
+- try with only within epsilon of number of bikes on the first day
+- clean up constants - don't use constants for things that aren't really constant
+- fix the 2.5 vs 1 difference thing
