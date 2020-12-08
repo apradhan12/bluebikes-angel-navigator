@@ -22,8 +22,8 @@ MIN_DIFF_HOUR_BIKES_DELTA = 2.5
 MIN_DIFF_HOUR_POINTS = 1
 
 # must be either True/False or False/True for now
-USE_POINTS = True
-SHOW_RATE_OF_CHANGE = False
+USE_POINTS = False
+SHOW_RATE_OF_CHANGE = not USE_POINTS
 
 USE_CACHED_NEARBY_PAIRS = True
 
@@ -58,7 +58,7 @@ def stdev_to_size(avg, stdev):
 
 
 def draw(ax, background_img, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list,
-         station_ids_list, lines, stdevs_list):
+         station_ids_list, lines, averages_list, stdevs_list):
     # fig, ax = plt.subplots()
     plt.cla()
 
@@ -80,8 +80,8 @@ def draw(ax, background_img, desired_hour, is_weekend, longitudes_list, latitude
             f"Number of {'points' if USE_POINTS else 'bikes'} from {desired_hour}:00 to "
             f"{(desired_hour + 1) % 24}:00 on {'weekends' if is_weekend else 'weekdays'}")
     textstr = "\n".join((
-        r"$\mu=%.3f$" % (sum(stdevs_list) / len(stdevs_list)),
-        r"$\sigma=%.3f$" % statistics.stdev(stdevs_list)))
+        r"$\mu(\mu)=%.3f$" % (sum(averages_list) / len(averages_list)),
+        r"$\mu(\sigma)=%.3f$" % (sum(stdevs_list) / len(stdevs_list))))
     ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
             verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5))
 
@@ -258,7 +258,7 @@ def main():
         hr = hr % 24
         draw(ax, boston, hr, is_weekend, longitudes_list, latitudes_list,
              colors_list[hr], sizes_list[hr], station_ids_list,
-             lines[hr], stdevs_list[hr])
+             lines[hr], averages_list[hr], stdevs_list[hr])
 
     animator = ani.FuncAnimation(fig, build_chart, interval=500, frames=24, repeat=True)
     plt.show()
