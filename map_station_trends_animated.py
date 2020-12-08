@@ -58,7 +58,7 @@ def stdev_to_size(avg, stdev):
 
 
 def draw(ax, background_img, desired_hour, is_weekend, longitudes_list, latitudes_list, colors_list, sizes_list,
-         station_ids_list, lines, averages_list, stdevs_list):
+         station_ids_list, lines, averages_list, stdevs_list, show_annotations):
     left, right = plt.xlim()
     bottom, top = plt.ylim()
     plt.cla()
@@ -67,8 +67,9 @@ def draw(ax, background_img, desired_hour, is_weekend, longitudes_list, latitude
 
     ax.imshow(background_img, zorder=0, extent=BBOX, aspect="auto")
     ax.scatter(longitudes_list, latitudes_list, zorder=2, alpha=1.0, c=colors_list, s=sizes_list)
-    # for i, station_id in enumerate(station_ids_list):
-    #     ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
+    if show_annotations:
+        for i, station_id in enumerate(station_ids_list):
+            ax.annotate(station_id, (longitudes_list[i], latitudes_list[i]), fontsize="xx-small", zorder=3)
     for line in lines:
         plt.plot(line[0], line[1], c="b", zorder=1)
     if SHOW_RATE_OF_CHANGE:
@@ -226,10 +227,27 @@ def calculate_lucrative_station_pairs(station_ids_list, latitudes_list, longitud
 
 
 def main():
+    global USE_POINTS, SHOW_RATE_OF_CHANGE
+
     parser = argparse.ArgumentParser()
+    parser.add_argument("data_type", help="type of data to plot ('points' or 'bikes')")
     parser.add_argument("-w", "--weekend", help="show weekends", action="store_true")
+    parser.add_argument("-a", "--show-annotations", help="show annotations", action="store_true")
+    parser.add_argument("-s", "--single-hour", help="show only one hour", type=int)
+    parser.add_argument("-i", "--interval", help="animation tick interval (ms)", type=int)
     args = parser.parse_args()
+    if args.data_type not in ["points", "bikes"]:
+        print('error: data_type must be one of "points", "bikes"')
+        exit(2)
+    USE_POINTS = args.data_type == "points"
+    SHOW_RATE_OF_CHANGE = not USE_POINTS
     is_weekend = args.weekend
+    single_hour = args.single_hour
+    if args.interval is not None:
+        interval = args.interval
+    else:
+        interval = 500
+    show_annotations = args.show_annotations
 
     # read all the files in the processed_output directory to obtain timeseries data
     all_stations = read_first_station_status_every_hour()
@@ -261,11 +279,14 @@ def main():
         hr = hr % 24
         draw(ax, boston, hr, is_weekend, longitudes_list, latitudes_list,
              colors_list[hr], sizes_list[hr], station_ids_list,
-             lines[hr], averages_list[hr], stdevs_list[hr])
+             lines[hr], averages_list[hr], stdevs_list[hr], show_annotations)
 
-    animator = ani.FuncAnimation(fig, build_chart, interval=500, frames=24, repeat=True)
+    if single_hour is not None:
+        build_chart(single_hour)
+    else:
+        animator = ani.FuncAnimation(fig, build_chart, interval=interval, frames=24, repeat=True)
+        # animator.save("my_animation.gif", fps=10)
     plt.show()
-    # animator.save('my_animation.gif', writer='imagemagick', fps=10)
 
 
 if __name__ == "__main__":
