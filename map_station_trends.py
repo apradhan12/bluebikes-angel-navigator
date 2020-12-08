@@ -120,9 +120,9 @@ def calculate_nearby_stations(station_ids_list, latitudes_list, longitudes_list)
 
 def read_first_station_status_every_hour():
     # read all the files in the processed_output directory to obtain timeseries data
-    filenames = os.listdir("processed_output/")
+    filenames = os.listdir("data/processed_output/")
     if not filenames:
-        raise Exception("no files found in processed_output/")
+        raise Exception("no files found in data/processed_output/")
 
     previous_date = None
     previous_hour = None
@@ -144,7 +144,7 @@ def read_first_station_status_every_hour():
         dt = datetime.fromtimestamp(timestamp)
         # read the first file in every unique hour
         if previous_hour is None or previous_date != dt.date() or previous_hour != dt.hour:
-            with open(f"processed_output/{filename}") as file_stream:
+            with open(f"data/processed_output/{filename}") as file_stream:
                 contents = json.load(file_stream)
                 for station, values in contents.items():
                     if station not in all_stations:
@@ -197,7 +197,7 @@ def get_aggregate_station_statistics_by_hour(all_stations, is_weekend):
 def get_station_coords_lists(station_ids_list):
     latitudes_list = []
     longitudes_list = []
-    with open("overall_stations.txt") as file_stream:
+    with open("data/overall_stations.json") as file_stream:
         contents = json.load(file_stream)
     for station_id in station_ids_list:
         latitudes_list.append(contents[station_id]["coords"][-1][1][0])

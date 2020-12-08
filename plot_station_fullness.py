@@ -100,12 +100,12 @@ def main():
     end_time = None
 
     # read all the files in the processed_output directory to obtain timeseries data
-    filenames = os.listdir("processed_output/")
+    filenames = os.listdir("data/processed_output/")
     if not filenames:
-        raise Exception("no files found in processed_output/")
+        raise Exception("no files found in data/processed_output/")
 
     for filename in filenames:
-        with open(f"processed_output/{filename}") as file_stream:
+        with open(f"data/processed_output/{filename}") as file_stream:
             contents = json.load(file_stream)
             timestamp = datetime.fromtimestamp(int(filename.split(".")[0]))
         if start_date is None:
@@ -128,7 +128,7 @@ def main():
     end_date = datetime.combine(end_time.date(), datetime.min.time())
 
     # read the name of the station whose ID was specified as a command-line argument
-    with open("overall_stations.txt") as file_stream:
+    with open("data/overall_stations.json") as file_stream:
         contents = json.load(file_stream)
     name = contents[station_id]["name"][-1][1]
 

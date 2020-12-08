@@ -46,7 +46,7 @@ def process_file_contents(timestamp, contents):
                     print(f"Station {name} ({station_id}) has changed its {field_name} from "
                           f"{overall_stations[station_id][field_name][-1][1]} to {station_entry[field_name][0][1]}")
                     overall_stations[station_id][field_name].append([timestamp, station_entry[field_name][0][1]])
-    with open(f"processed_output/{timestamp}.txt", "w") as file_stream:
+    with open(f"data/processed_output/{timestamp}.json", "w") as file_stream:
         json.dump(processed, file_stream)
 
 
@@ -58,7 +58,7 @@ def main():
             contents = json.load(file_stream)
             timestamp = int(filename.split(".")[0])
         process_file_contents(timestamp, contents)
-    with open("overall_stations.txt", "w") as file_stream:
+    with open("data/overall_stations.json", "w") as file_stream:
         json.dump(overall_stations, file_stream)
 
 
