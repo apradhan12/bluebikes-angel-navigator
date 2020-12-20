@@ -9,8 +9,8 @@ overall_stations = {}
 
 
 def process_file_contents(timestamp, contents):
-    if "message" in contents and contents["message"] == "Internal server error":
-        print(f"Internal server error at time {timestamp}")
+    if "message" in contents:
+        print(f"Message: \"{contents['message']}\" at time {timestamp}")
         return
     stations = contents["features"]
     processed = {}
@@ -55,8 +55,8 @@ def main():
         if os.stat(f"raw_output/{filename}").st_size == 0:
             continue
         with open(f"raw_output/{filename}") as file_stream:
-            contents = json.load(file_stream)
             timestamp = int(filename.split(".")[0])
+            contents = json.load(file_stream)
         process_file_contents(timestamp, contents)
     with open("data/overall_stations.json", "w") as file_stream:
         json.dump(overall_stations, file_stream)
